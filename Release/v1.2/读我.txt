@@ -1,0 +1,16 @@
+希尔伯特混淆/解混淆 CLI (覆盖原图)
+
+去除opencv加速读入图像，专注于生成HilbertCurve加速。
+相比v1.0提速14倍左右
+
+注：只支持命令行运行，目前只支持jpg/png格式
+
+
+命令行用法: bbw_tphx_NumPy.exe [-h] (-e | -d)
+
+将图片放入文件夹file中
+
+options:
+  -h, --help     帮助信息
+  -e, --encrypt  加密图像
+  -d, --decrypt  解密图像
