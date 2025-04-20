@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="在线图片混淆工具,
+        使用Gilbert曲线像素位移算法和黄金分割比自动优化,
+        支持抗压缩PNG格式输出,
+        提供极简操作流程,
+        拖放即可完成图片加密与解密。">
+    <link rel="preload" href="unifont-all.woff2" as="font" type="font/woff2" crossorigin>
+    <title>小土豆图片混淆</title>
+    <style>
+        @font-face {
+            font-family: 'Unifont-smooth';
+            src: local('Unifont-smooth'),
+                url('unifont-all.woff2') format('woff2');
+            font-display: swap;
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        .info-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            max-width: 600px;
+            max-height: 20vh;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            margin: 0.5rem auto;
+        }
+
+        .info-cards::-webkit-scrollbar {
+            width: 4px;
+            background: #f1f3f5;
+        }
+
+        .info-cards::-webkit-scrollbar-thumb {
+            background: #21897E;
+            border-radius: 2px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 0.8rem 1rem;
+            min-height: unset;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h3 {
+            color: #1B9E91;
+            margin: 0 0 1rem;
+            font-size: 1.1rem;
+            border-bottom: 2px solid #F8F9FA;
+            padding-bottom: 0.5rem;
+        }
+
+        .bullet-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        .bullet-list li {
+            padding-left: 1.5em;
+            position: relative;
+            margin: 0.3rem 0;
+            line-height: 1.3;
+            font-size: 0.9em;
+        }
+
+        .bullet-list li::before {
+            content: "•";
+            color: #4A9FA6;
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+        }
+
+        body {
+            color: #E0E0E0;
+            background: #1A1A1A;
+            font-family: 'Unifont-smooth', sans-serif;
+            position: relative;
+            /*overflow: hidden;*/
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background:
+                linear-gradient(120deg, rgba(107, 70, 193, 0.15) 20%, transparent 80%),
+                linear-gradient(240deg, rgba(43, 108, 176, 0.15) 30%, transparent 70%),
+                linear-gradient(360deg, rgba(44, 122, 123, 0.15) 40%, transparent 60%);
+            animation:
+                flowX 25s linear infinite,
+                flowY 35s linear infinite;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        @keyframes flowX {
+            0% {
+                transform: translateX(0) scale(1.2);
+            }
+
+            100% {
+                transform: translateX(-50%) scale(1);
+            }
+        }
+
+        @keyframes flowY {
+            0% {
+                transform: translateY(0);
+            }
+
+            100% {
+                transform: translateY(-25%);
+            }
+        }
+
+        h1 {
+            font-family: system-ui, sans-serif;
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            margin: 0.5em 0;
+            color: inherit;
+        }
+
+        .fonts-loaded h1 {
+            font-family: 'Unifont-smooth', system-ui, sans-serif;
+        }
+
+        .normal_button {
+            background-color: #0F3A57;
+            color: #fff;
+            min-width: 4rem;
+            height: 2rem;
+            line-height: 2rem;
+            font-size: 1rem;
+            font-family: inherit;
+            padding: 0 0.5rem;
+            margin: 0 0.5rem;
+            border: 0;
+            border-radius: 6px;
+            display: inline-block;
+            position: relative;
+            vertical-align: middle;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .normal_button:hover {
+            filter: brightness(1.15);
+            transform: translateY(-4px);
+            box-shadow: 0 2px 6px rgba(34, 92, 138, 0.3);
+        }
+
+        .normal_button:active {
+            filter: brightness(0.95);
+            transform: translateY(0);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .normal_button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: #ADB5BD;
+        }
+
+        #enc {
+            background-color: #157F6C;
+        }
+
+        #dec {
+            background-color: #1A535C;
+        }
+
+        #re {
+            background-color: #7D2E38;
+        }
+
+        .ipt_btn {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            background-color: #ccc;
+        }
+
+        .ipt_btn:hover {
+            cursor: pointer;
+        }
+
+        .hidden-controls {
+            display: none !important;
+        }
+
+        #drop-hint {
+            color: #8B98A6;
+        }
+
+        #drop-hint.dragover {
+            color: #21897E;
+            font-weight: bold;
+            text-shadow: 0 0 3px rgba(33, 137, 126, 0.2);
+        }
+
+        #offset-info::before {
+            content: "默认值：黄金分割比 ";
+            color: #8B98A6;
+        }
+
+        input {
+            color: #2D2D2D;
+            border: 1px solid #CED4DA !important;
+            background: #FFFFFF;
+        }
+
+        input:focus {
+            border-color: #21897E !important;
+            box-shadow: 0 0 0 2px rgba(33, 137, 126, 0.1);
+        }
+
+        #loading-hint {
+            color: #1B6B63;
+        }
+
+        .progress-container {
+            width: 200px;
+            height: 10px;
+            background: rgba(33, 137, 126, 0.1);
+            border-radius: 2px;
+            margin: 0 auto;
+            overflow: hidden;
+            padding: 3px 0;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: #21897E;
+            border-radius: 2px;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: width;
+        }
+
+        .progress-text {
+            width: 50%;
+            margin-top: 0%;
+            margin-bottom: 10px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
+            color: #21C2B0;
+            font-size: 0.9em;
+            line-height: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            white-space: nowrap;
+        }
+
+        @media (max-width: 480px) {
+            .info-cards {
+                max-height: 20vh;
+                gap: 8px;
+                padding: 0 8px;
+            }
+
+            .card {
+                padding: 0.6rem;
+                margin: 0 4px;
+            }
+
+            .card h3 {
+                font-size: 0.95rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .bullet-list li {
+                font-size: 0.9rem;
+                line-height: 1.4;
+                margin: 0.4rem 0;
+                padding-left: 1.2em;
+            }
+
+            #drop-hint {
+                margin: 8px 0;
+                font-size: 0.9rem;
+            }
+
+            .progress-container {
+                width: 160px;
+            }
+
+            .progress-text {
+                font-size: 0.85em;
+                margin-top: 6px;
+            }
+
+            div[style*="margin: 15px 0"] {
+                margin: 10px 0 !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div style="text-align: center;">
+        <h1>小土豆图片混淆</h1>
+        <div class="info-cards">
+            <!-- 技术特性卡片 -->
+            <div class="card">
+                <h3>核心技术</h3>
+                <ul class="bullet-list">
+                    <li>Gilbert曲线像素位移算法</li>
+                    <li>黄金分割比自动参数优化</li>
+                    <li>抗压缩PNG格式输出</li>
+                </ul>
+            </div>
+
+            <!-- 操作流程卡片 -->
+            <div class="card">
+                <h3>极简操作</h3>
+                <ul class="bullet-list">
+                    <li>拖放图片 或 点击选择文件</li>
+                    <li>点击「混淆」生成 混淆图</li>
+                    <li>点击「解混淆」生成 解混淆图</li>
+                </ul>
+            </div>
+        </div>
+        <div>&ZeroWidthSpace;</div>
+        <div>
+            <span class="normal_button">
+                <label for="ipt" style="cursor: inherit;">选择图片</label>
+                <input type="file" accept="image/*" id="ipt" class="ipt_btn" />
+            </span>
+            <div>&ZeroWidthSpace;</div>
+            <div id="action-buttons" class="hidden-controls">
+                <button id="enc" class="normal_button">
+                    混淆
+                </button>
+                <button id="dec" class="normal_button">
+                    解混淆
+                </button>
+                <button id="re" class="normal_button">
+                    还原
+                </button>
+            </div>
+            <div style="margin: 15px 0;">
+                <label for="offset-input" style="color: #666; margin-right: 10px;">偏移参数：</label>
+                <input type="number" id="offset-input" placeholder="auto或数字"
+                    style="width: 140px; padding: 4px; border-radius: 4px; border: 1px solid #ccc;" min="1" step="100">
+                <span id="offset-info" style="color: #999; margin-left: 8px;"></span>
+            </div>
+        </div>
+
+        <div id="drop-hint" style="color: #666; margin: 10px 0;">或将图片拖拽到此处</div>
+
+        <div id="loading-hint" style="display: none; margin: 0 0;">
+            <div class="progress-container">
+                <div class="progress-bar"></div>
+                <div class="progress-text">处理中...</div>
+            </div>
+        </div>
+
+        <div>&ZeroWidthSpace;</div>
+        <div><img id="display-img"
+                style="max-width: calc(100vw - 32px); max-height: calc(100vh - 32px); display: none;" /></div>
+    </div>
+
+    <script>
+        let isProcessing = false; // 标记是否正在处理
+        let activeWorker = null; // 存储当前活跃的 Worker
+        function toggleButtonsDisabled(disabled) {
+            document.getElementById('enc').disabled = disabled;
+            document.getElementById('dec').disabled = disabled;
+            document.getElementById('re').disabled = disabled;
+        }
+        // 隐藏/显示操作按钮
+        function toggleActionButtons(show = true) {
+            const container = document.getElementById('action-buttons');
+            container.classList.toggle('hidden-controls', !show);
+
+            // 同时控制偏移参数区域的显示
+            const paramSection = document.querySelector('div[style*="margin: 15px 0"]');
+            if (paramSection) {
+                paramSection.style.display = show ? 'block' : 'none';
+            }
+        }
+        // init offset display
+        function initOffsetDisplay() {
+            const info = document.getElementById('offset-info');
+            info.textContent = `当前：默认值`;
+        }
+
+        // 页面加载时，隐藏控制按钮，初始化偏移量显示
+        window.addEventListener('load', () => {
+            toggleActionButtons(false);
+            initOffsetDisplay();
+        });
+
+        // 计算偏移量offset
+        function calculateOffset(width, height) {
+            const input = document.getElementById('offset-input');
+            const maxOffset = width * height - 1;
+
+            // 处理空值/auto情况
+            if (input.value.trim() === '' || input.value.toLowerCase() === 'auto') {
+                const autoVal = Math.round((Math.sqrt(5) - 1) / 2 * maxOffset);
+                return Math.min(autoVal, maxOffset);
+            }
+
+            // 处理数字输入
+            let numValue = Number(input.value);
+            numValue = Math.min(Math.abs(numValue), maxOffset);
+            return numValue || 0; // Avoid NaN
+        }
+    </script>
+    <script>
+        let reusableCanvas = null; // 全局复用 canvas
+        const img = document.getElementById("display-img")
+        let currentBlobUrl = null; // 存储当前的 Blob URL
+        // 设置图片源
+        function setsrc(src) {
+            if (currentBlobUrl) {
+                URL.revokeObjectURL(currentBlobUrl); // 释放之前的 Blob URL
+            }
+            currentBlobUrl = src;
+            img.src = src
+            img.style.display = "inline-block"
+        }
+        // 页面卸载时清理
+        window.addEventListener('beforeunload', () => {
+            if (currentBlobUrl) {
+                URL.revokeObjectURL(currentBlobUrl);
+            }
+        });
+        // 异步处理图片，使用 worker.js
+        async function processImage(img, isEncrypt) {
+            if (isProcessing) {
+                return; // 直接拒绝新请求，不终止旧任务
+            }
+            isProcessing = true;
+            toggleButtonsDisabled(true); // 立即禁用所有按钮
+
+            document.getElementById('loading-hint').style.display = 'block';
+            document.querySelector('.progress-text').textContent = '正在加载图片...'; // 处理开始时显示
+            if (!reusableCanvas) {
+                reusableCanvas = document.createElement("canvas");
+            }
+            const cvs = reusableCanvas;
+            const width = cvs.width = img.width
+            const height = cvs.height = img.height
+            const ctx = cvs.getContext("2d", { willReadFrequently: true }) // 预防可能频繁读取像素数据
+            ctx.drawImage(img, 0, 0)
+            const imgdata = ctx.getImageData(0, 0, width, height)
+            const offset = calculateOffset(width, height); // 偏移量
+            activeWorker = new Worker("worker.js"); // 创建 Worker
+
+            // 发送数据到 Worker
+            activeWorker.postMessage({
+                imgData: imgdata,
+                width: width,
+                height: height,
+                offset: offset,
+                isEncrypt: isEncrypt
+            }, [imgdata.data.buffer]); // 使用 Transferable 避免拷贝
+
+            // 接收处理结果
+            activeWorker.onmessage = (e) => {
+                if (e.data.type === 'progress') {
+                    // 更新进度条
+                    document.querySelector('.progress-bar').style.width =
+                        `${e.data.progress}%`;
+                    document.querySelector('.progress-text').textContent =
+                        `${e.data.progress}%`;
+                }
+                else if (e.data.type === 'result') {
+                    document.querySelector('.progress-bar').style.width = '0%'; // 重置进度条
+                    document.querySelector('.progress-text').textContent = '正在加载图片...'; // 处理完成时显示
+                    const pixelData = e.data.data;
+                    ctx.putImageData(new ImageData(pixelData, width, height), 0, 0);
+                    cvs.toBlob(b => {
+                        setsrc(URL.createObjectURL(b));
+                        document.getElementById('loading-hint').style.display = 'none';
+                        isProcessing = false; // 处理完成
+                        activeWorker.terminate(); // 清空活跃 Worker
+                        toggleButtonsDisabled(false); // 处理完成恢复按钮
+                    }, "image/png");
+                }
+            };
+
+            // 初始化进度条
+            document.getElementById('loading-hint').style.display = 'block';
+            document.querySelector('.progress-bar').style.width = '0%';
+
+            // 错误处理
+            activeWorker.onerror = (e) => {
+                console.error("Worker 错误:", e.message);
+                isProcessing = false; // 清空处理状态
+                activeWorker.terminate(); // 清空活跃 Worker
+                toggleButtonsDisabled(false); // 恢复按钮
+                document.getElementById('loading-hint').style.display = 'none';
+            };
+            // 更新参数显示
+            document.getElementById('offset-info').textContent =
+                `当前：${offset} (最大${width * height - 1})`;
+        }
+        const ipt = document.getElementById("ipt")
+        ipt.onchange = () => {
+            if (ipt.files.length > 0) {
+                toggleActionButtons(true);
+                setsrc(URL.createObjectURL(ipt.files[0]));
+            }
+        }
+        const btn_enc = document.getElementById("enc")
+        btn_enc.onclick = () => {
+            if (!img.src) {
+                //console.error("未选择图片")
+                return
+            }
+            img.style.display = "none"
+            processImage(img, true);
+        }
+        const btn_dec = document.getElementById("dec")
+        btn_dec.onclick = () => {
+            if (!img.src) {
+                //console.error("未选择图片")
+                return
+            }
+            img.style.display = "none"
+            processImage(img, false);
+        }
+        const btn_restore = document.getElementById("re")
+        btn_restore.onclick = () => {
+            if (isProcessing) {
+                return; // 处理期间点击无效
+            }
+
+            if (ipt.files.length > 0) {
+                setsrc(URL.createObjectURL(ipt.files[0]))
+            } else {
+                toggleActionButtons(false);  // 隐藏控制
+            }
+        }
+
+        // 拖拽加载图片
+
+        const dropZone = document.body; // 使用整个页面作为拖拽区域
+
+        // 阻止默认行为
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, e => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        });
+
+        // 高亮提示
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                document.getElementById('drop-hint').classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                document.getElementById('drop-hint').classList.remove('dragover');
+            });
+        });
+
+        // 处理文件拖放
+        dropZone.addEventListener('drop', e => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                toggleActionButtons(true);
+                // 与文件选择器逻辑保持一致
+                const file = files[0];
+                if (file.type.startsWith('image/')) {
+                    setsrc(URL.createObjectURL(file));
+                    // 同步到文件选择器（使"还原"按钮正常工作）
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    ipt.files = dataTransfer.files;
+                }
+            }
+        });
+    </script>
+
+    <script>
+        // 监听所有字体加载完成
+        document.fonts.ready.then(() => {
+            document.documentElement.classList.add('fonts-loaded');
+        });
+    </script>
+
+    <canvas id="particle-canvas" style="position: fixed; z-index: -1;"></canvas>
+
+    <script defer>
+        // 星空粒子动画
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // 初始化画布尺寸
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // 生成粒子
+        const particles = Array.from({ length: 150 }, () => ({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 2,
+            speed: Math.random() * 0.2 + 0.1,
+            alpha: Math.random() * 0.5 + 0.5
+        }));
+
+        // 绘制动画
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(particle => {
+                particle.y += particle.speed;
+                if (particle.y > canvas.height) particle.y = 0;
+
+                ctx.beginPath();
+                ctx.fillStyle = `rgba(255, 255, 255, ${particle.alpha})`;
+                ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
+</body>
+
+</html>
