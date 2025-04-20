@@ -1,0 +1,2 @@
+- 修复了activeworker未正常回收的问题
+-- 在返回blob时手动终止activeworker
