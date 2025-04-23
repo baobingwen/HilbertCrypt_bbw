@@ -30,76 +30,33 @@
 - **命令行工具**：批量处理`files`文件夹内的图片
 - **Web界面**：支持拖放操作，实时预览处理结果
 
-### 安装与配置
+### 使用方法
 
-#### 命令行工具
+#### Py版本
+
+##### 配置环境
 
 ```bash
-conda create -n hilbert python=3.10 -c conda-forge
-conda activate hilbert
+conda create -n hilbertCrypt python=3.10 -c conda-forge
+conda activate hilbertCrypt
 pip install pillow==11.1.0 numpy==2.2.4
 ```
+
+##### 运行方法
+
+1. 将图片放入`./files`文件夹里
+2. 加密：命令行界面输入`python bbw_tphx_NumPy.py -d/--decrypt`
+3. 解密：命令行界面输入`python bbw_tphx_NumPy.py -d/--decrypt`
 
 #### Web界面
 
-直接浏览器打开 `index.html`（需与 `worker.js` 同目录）
+[稳定版本](https://baobingwen.github.io/tools/GilbertCrypt/test/)
 
-### 使用示例
-
-```bash
-# 加密所有图片
-python bbw_tphx_NumPy.py --encrypt
-
-# 解密示例截图
-![](docs/demo.gif)
-```
-
----
+[最新开发测试版本](https://baobingwen.github.io/tools/GilbertCrypt/test/)
 
 <a id="english"></a>
 
-## 🇺🇸 English Documentation
-
-### Project Overview
-
-An image obfuscation tool based on Hilbert curve and golden ratio optimization, supporting both CLI (Python) and Web (HTML/JS) interfaces. Implements pixel displacement algorithm for secure encryption/decryption.
-
-### Key Features
-
-#### Core Algorithm
-
-- **Hilbert Curve Mapping**: Rearrange pixels via space-filling curve
-- **Golden Ratio Optimization**: Auto-calculate optimal displacement
-- **Compression Resistance**: PNG format output by default
-
-#### Cross-Platform Support
-
-- **CLI Tool**: Batch process images in `files` folder
-- **Web UI**: Drag-and-drop operation with real-time preview
-
-### Installation
-
-#### CLI Tool
-
-```bash
-conda create -n hilbert python=3.10 -c conda-forge
-conda activate hilbert
-pip install pillow==11.1.0 numpy==2.2.4
-```
-
-#### Web Interface
-
-Open `index.html` directly in browser (require `worker.js` in same folder)
-
-### Usage Example
-
-```bash
-# Encrypt all images
-python bbw_tphx_NumPy.py --encrypt
-
-# Demo screenshot
-![](docs/demo.gif)
-```
+暂无英文版说明，等待大版本再更新
 
 ---
 
@@ -117,9 +74,6 @@ python bbw_tphx_NumPy.py --encrypt
 
 ### 注意事项 / Notes
 
-- 🔸 Web版建议处理小于2000x2000像素的图片  
-  *Web version recommended for images <2000x2000px*
-- 🔸 命令行工具会覆盖原文件  
-  *CLI tool will overwrite original files*
-- 🔸 加密结果不跨平台兼容  
-  *Encryption results are not cross-platform compatible*
+- 🔸 Web版建议处理小于2000x2000像素的图片
+- 🔸 命令行工具会覆盖原文件
+- 🔸 加密结果暂不跨平台兼容
