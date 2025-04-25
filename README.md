@@ -15,7 +15,7 @@
 
 ### 项目概述
 
-一个基于希尔伯特曲线和黄金分割比优化的图片混淆工具，支持命令行（Python）和Web端（HTML/JS）两种使用方式。通过像素位移算法实现加密与解密，保障图像内容的安全性。
+一个基于希尔伯特曲线和黄金分割比优化的图片混淆工具，支持命令行（C++、Python）和Web端（HTML/JS）两种使用方式。通过像素位移算法实现混淆与解混淆，保障图像内容的安全性。
 
 ### 功能特性
 
@@ -32,6 +32,30 @@
 
 ### 使用方法
 
+#### C++版本
+
+##### 环境信息
+
+1. mingw-w64-x86_64-opencv 4.11.0-3
+2. c++17
+
+##### 编译方法
+
+1. g++编译指令（我的环境）
+
+```bash
+D:/msys64/mingw64/bin/g++.exe -std=c++20 -g -ID:/msys64/mingw64/include/opencv4 E:/Projects/HilbertCrypt/Cpp/hilbert_encrypt.cpp -o E:/Projects/HilbertCrypt/Cpp/output.exe -LD:/msys64/mingw64/lib -lopencv_core -lopencv_highgui -lopencv_imgcodecs
+```
+
+2. Cmake自动编译
+
+##### 运行方法
+
+1. 先编译好`hilbert_encrypt.cpp`文件
+2. 将图片放入`./files`文件夹里
+3. 混淆：命令行界面输入`<output.exe> -e`
+4. 解混淆：命令行界面输入`<output.exe> -d`
+
 #### Py版本
 
 ##### 配置环境
@@ -45,16 +69,20 @@ pip install pillow==11.1.0 numpy==2.2.4
 ##### 运行方法
 
 1. 将图片放入`./files`文件夹里
-2. 加密：命令行界面输入`python bbw_tphx_NumPy.py -d/--decrypt`
-3. 解密：命令行界面输入`python bbw_tphx_NumPy.py -d/--decrypt`
+2. 混淆：命令行界面输入`python bbw_tphx_NumPy.py -d/--decrypt`
+3. 解混淆：命令行界面输入`python bbw_tphx_NumPy.py -d/--decrypt`
 
-#### Web界面
+#### Web版本
 
 [稳定版本](https://baobingwen.github.io/tools/GilbertCrypt/test/)
 
 [最新开发测试版本](https://baobingwen.github.io/tools/GilbertCrypt/test/)
 
 <a id="english"></a>
+
+## English Documentation
+
+Waiting for a stable version.
 
 暂无英文版说明，等待大版本再更新
 
@@ -66,14 +94,15 @@ pip install pillow==11.1.0 numpy==2.2.4
 
 ```
 .
-├── bbw_tphx_NumPy.py        # CLI core
+├── bbw_tphx_NumPy.py        # CLI Py Version
+├── hilbert_encrypt.cpp      # CLI C++ Version
 ├── index.html               # Web UI
 ├── worker.js                # Web Worker
-└── files/                   # Processing folder (auto-created)
+└── files/                   # Processing folder 
 ```
 
 ### 注意事项 / Notes
 
 - 🔸 Web版建议处理小于2000x2000像素的图片
 - 🔸 命令行工具会覆盖原文件
-- 🔸 加密结果暂不跨平台兼容
+- 🔸 混淆结果暂不跨语言兼容，且仅支持win版
