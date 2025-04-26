@@ -47,14 +47,29 @@
 D:/msys64/mingw64/bin/g++.exe -std=c++20 -g -ID:/msys64/mingw64/include/opencv4 E:/Projects/HilbertCrypt/Cpp/hilbert_encrypt.cpp -o E:/Projects/HilbertCrypt/Cpp/output.exe -LD:/msys64/mingw64/lib -lopencv_core -lopencv_highgui -lopencv_imgcodecs
 ```
 
-2. Cmake自动编译
+2. Cmake自动构建
+
+```bash
+cd ./Cpp
+
+# 清理旧构建
+rm -rf build bin
+
+# 重新生成配置
+cmake -B build -G "MinGW Makefiles" \
+  -DCMAKE_C_COMPILER=/path/to/your/gcc.exe \
+  -DCMAKE_CXX_COMPILER=/path/to/your/g++.exe
+
+# 执行构建（显示详细日志）
+cmake --build build --verbose
+```
 
 ##### 运行方法
 
 1. 先编译好`hilbert_encrypt.cpp`文件
-2. 将图片放入`./files`文件夹里
-3. 混淆：命令行界面输入`<output.exe> -e`
-4. 解混淆：命令行界面输入`<output.exe> -d`
+2. 将图片放入`./files`文件夹里，或者等待程序自动创建
+3. 进入命令行，运行`./bin/hilbert_encrypt.exe [options]`
+4. 混淆：`-e`，解混淆：`-d`
 
 #### Py版本
 
