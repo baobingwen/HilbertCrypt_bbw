@@ -177,9 +177,10 @@ void copy_pixels(
         // 每 progress_step 输出进度
         if (i % progress_step == 0) {
             int64_t progress = static_cast<int64_t>(i) * 100 / total;
-            cout << progress << "%" << endl;
+            cout << progress << "% ";
         }
     }
+    cout << endl;  // 进度输出结束输出换行
 }
 
 // 图像处理函数
@@ -264,6 +265,7 @@ void process_image(const string& input_path, const string& output_path, bool is_
         Mat output_img(img.size(), img.type(), Scalar(0));  // 初始化输出图像为全零
 
         // 像素复制循环
+        start = std::chrono::high_resolution_clock::now();  // 记录开始时间
         double golden_ratio = (sqrt(5) - 1) / 2;  // 黄金比例
         int64_t offset = round(golden_ratio * total);  // 计算偏移量
         cout << "正在复制像素..." << endl;
@@ -276,7 +278,9 @@ void process_image(const string& input_path, const string& output_path, bool is_
             cerr << "错误：不支持的像素深度" << endl;
             return;
         }
-        cout << "像素复制完成" << endl;
+        end = std::chrono::high_resolution_clock::now();  // 记录结束时间
+        elapsed = end - start;  // 计算耗时
+        cout << "像素复制完成，复制耗时: " << elapsed.count() << "秒" << endl;  // 输出耗时
 
         // 验证数据（检查是否全零）
         Scalar sum = cv::sum(output_img);
