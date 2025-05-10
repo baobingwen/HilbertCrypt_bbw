@@ -239,7 +239,7 @@ void copy_pixels(
                 lock_guard<mutex> lock(cout_mutex);
                 // 动态刷新同一行
                 cout << "[" << current_ctx.file_index << "/" << current_ctx.total_files << "] "
-                    << current_ctx.filename << ": 进度 " << progress << "% \r";
+                    << current_ctx.filename << ": 正在复制像素... " << progress << "% \r";
                 cout.flush();
             }
         }
@@ -248,7 +248,7 @@ void copy_pixels(
             lock_guard<mutex> lock(cout_mutex);
             // 动态刷新同一行
             cout << "[" << current_ctx.file_index << "/" << current_ctx.total_files << "] "
-                << current_ctx.filename << ": 进度 " << "100% \r";
+                << current_ctx.filename << ": 正在复制像素... " << "100% \r";
             cout.flush();
             cout << endl;  // 进度输出结束输出换行
         }
@@ -352,7 +352,6 @@ void process_image(const string& input_path, const string& output_path, bool is_
         double golden_ratio = (sqrt(5) - 1) / 2;  // 黄金比例
         int64_t offset = round(golden_ratio * total);  // 计算偏移量
 
-        log("正在复制像素...", false);
         copy_pixels(img, &output_img, curve, total, offset, is_encrypt, channels, depth);
 
         end = std::chrono::high_resolution_clock::now();  // 记录结束时间
@@ -432,9 +431,16 @@ int main(int argc, char** argv) {
     }
 
     if (files.empty()) {
-        cerr << "文件夹内无图像文件!" << endl;
+        cerr << "文件夹内无符合支持格式的图像文件!" << endl;
+        cout << "支持的图片格式: ";
+        for (const auto& ext : supported_exts) {
+            cout << ext << " ";
+        }
+        cout << endl;
         return 1;
     }
+
+    auto start = std::chrono::high_resolution_clock::now();  // 记录开始时间
 
     // 多线程处理文件
     vector<thread> threads;
@@ -464,7 +470,10 @@ int main(int argc, char** argv) {
 
     {
         lock_guard<mutex> lock(cout_mutex);
+        auto end = std::chrono::high_resolution_clock::now();  // 记录结束时间
+        std::chrono::duration<double> elapsed = end - start;  // 计算耗时
         cout << "所有文件处理完成（共 " << files.size() << " 个文件）" << endl;
+        cout << "总耗时: " << elapsed.count() << "秒" << endl;
     }
 
     return 0;
