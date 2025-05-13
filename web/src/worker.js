@@ -2,10 +2,7 @@
 import init, { Gilbert2D } from './wasm/lp_crypt_wasm_core.js';
 
 // 初始化WASM模块
-const wasmInitPromise =  init().then(() =>{
-        // console.log('Gilbert2D 类是否定义:', typeof Gilbert2D); // 应输出 "function"
-    })
-    .catch((error) => {
+const wasmInitPromise =  init().catch((error) => {
         console.error('Error initializing WASM module:', error);
         throw error;
     }
