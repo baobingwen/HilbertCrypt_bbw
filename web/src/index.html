@@ -220,6 +220,14 @@
             color: #21897E;
             font-weight: bold;
             text-shadow: 0 0 3px rgba(33, 137, 126, 0.2);
+            background-color: rgba(33, 137, 126, 0.2);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
         }
 
         #offset-info::before {
@@ -244,7 +252,7 @@
 
         .progress-container {
             width: 200px;
-            height: 10px;
+            height: 12px;
             background: rgba(33, 137, 126, 0.1);
             border-radius: 2px;
             margin: 0 auto;
@@ -265,9 +273,9 @@
         }
 
         .progress-text {
-            width: 50%;
+            width: fit-content;
             margin-top: 0%;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             margin-left: auto;
             margin-right: auto;
             text-align: center;
@@ -373,7 +381,7 @@
             </div>
         </div>
 
-        <div id="drop-hint" style="color: #666; margin: 10px 0;">或将图片拖拽到此处</div>
+        <div id="drop-hint" style="color: #666; margin: 10px auto; width: fit-content;">或将图片拖拽到此处</div>
 
         <div id="loading-hint" style="display: none; margin: 0 0;">
             <div class="progress-container">
@@ -434,8 +442,7 @@
             numValue = Math.min(Math.abs(numValue), maxOffset);
             return numValue || 0; // Avoid NaN
         }
-    </script>
-    <script>
+
         let reusableCanvas = null; // 全局复用 canvas
         const img = document.getElementById("display-img")
         let currentBlobUrl = null; // 存储当前的 Blob URL
@@ -463,18 +470,27 @@
             toggleButtonsDisabled(true); // 立即禁用所有按钮
 
             document.getElementById('loading-hint').style.display = 'block';
-            document.querySelector('.progress-text').textContent = '正在加载图片...'; // 处理开始时显示
+            const startProcessTime = performance.now(); // 处理图片计时开始
+            console.log("开始处理图片...");
+            document.querySelector('.progress-text').textContent = '正在准备处理...'; // 显示进度信息：正在准备
+            const startloadTime = performance.now(); // 加载图片计时开始
+            console.log("正在加载图片...");
             if (!reusableCanvas) {
                 reusableCanvas = document.createElement("canvas");
             }
-            const cvs = reusableCanvas;
-            const width = cvs.width = img.width
-            const height = cvs.height = img.height
-            const ctx = cvs.getContext("2d", { willReadFrequently: true }) // 预防可能频繁读取像素数据
-            ctx.drawImage(img, 0, 0)
-            const imgdata = ctx.getImageData(0, 0, width, height)
-            const offset = calculateOffset(width, height); // 偏移量
-            activeWorker = new Worker("worker.js"); // 创建 Worker
+            const cvs = reusableCanvas; // 设置 Canvas
+            const width = cvs.width = img.width // 图片width
+            const height = cvs.height = img.height // 图片height
+            const ctx = cvs.getContext("2d", { willReadFrequently: true }) // 创建 Canvas 内容容器
+            ctx.drawImage(img, 0, 0) // 绘制图片到 Canvas
+            const imgdata = ctx.getImageData(0, 0, width, height) // 获取图片数据
+            const offset = calculateOffset(width, height); // 根据图片宽高计算偏移量(默认黄金分割值)
+            console.log("加载图片完成，耗时：", (performance.now() - startloadTime).toFixed(2), "ms");
+
+            document.querySelector('.progress-text').textContent = '正在处理图片...'; // 显示进度信息：正在处理
+            const startWorkerTime = performance.now(); // Worker 计时开始
+            console.log("开始处理 Worker...");
+            activeWorker = new Worker("./worker.js", {type: "module"}); // 创建 Worker
 
             // 发送数据到 Worker
             activeWorker.postMessage({
@@ -487,7 +503,20 @@
 
             // 接收处理结果
             activeWorker.onmessage = (e) => {
-                if (e.data.type === 'progress') {
+                // console.log('[Main Thread] received Worker message:', e.data); // 打印消息内容
+                if (e.data.type === 'retry'){
+                    console.log('[Main Thread] received Worker message:', e.data); // 打印消息内容
+                    const imgdata = ctx.getImageData(0, 0, width, height);
+                    activeWorker.postMessage({
+                        imgData: imgdata,
+                        width: e.data.width,
+                        height: e.data.height,
+                        offset: e.data.offset,
+                        isEncrypt: e.data.isEncrypt
+                    }, [imgdata.data.buffer]);
+                    return;
+                }
+                else if (e.data.type === 'progress') {
                     // 更新进度条
                     document.querySelector('.progress-bar').style.width =
                         `${e.data.progress}%`;
@@ -495,13 +524,19 @@
                         `${e.data.progress}%`;
                 }
                 else if (e.data.type === 'result') {
-                    document.querySelector('.progress-bar').style.width = '0%'; // 重置进度条
-                    document.querySelector('.progress-text').textContent = '正在加载图片...'; // 处理完成时显示
-                    const pixelData = e.data.data;
+                    console.log('[Main Thread] received Worker message:', e.data); // 打印消息内容
+                    console.log("Worker 处理完成，耗时：", (performance.now() - startWorkerTime).toFixed(2), "ms");
+                    // document.querySelector('.progress-bar').style.width = '0%'; // 重置进度条
+                    document.querySelector('.progress-text').textContent = '处理完成，正在加载图片...'; // 进度状态
+                    const startTransferTime = performance.now(); // 传输计时开始
+                    console.log("正在传输图片...");
+                    const pixelData = new Uint8ClampedArray(e.data.buffer);
                     ctx.putImageData(new ImageData(pixelData, width, height), 0, 0);
                     cvs.toBlob(b => {
                         setsrc(URL.createObjectURL(b));
                         document.getElementById('loading-hint').style.display = 'none';
+                        console.log("传输图片完成，耗时：", (performance.now() - startTransferTime).toFixed(2), "ms");
+                        console.log("处理总耗时：", (performance.now() - startProcessTime).toFixed(2), "ms");
                         isProcessing = false; // 处理完成
                         activeWorker.terminate(); // 清空活跃 Worker
                         toggleButtonsDisabled(false); // 处理完成恢复按钮
@@ -516,6 +551,7 @@
             // 错误处理
             activeWorker.onerror = (e) => {
                 console.error("Worker 错误:", e.message);
+                alert("处理图片时发生错误: " + e.message);
                 isProcessing = false; // 清空处理状态
                 activeWorker.terminate(); // 清空活跃 Worker
                 toggleButtonsDisabled(false); // 恢复按钮
