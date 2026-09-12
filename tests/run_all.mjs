@@ -14,6 +14,7 @@ const quick = process.argv.includes('--quick');
 
 const SUITES = [
     { name: 'Rust 核心单元测试', cmd: 'cargo', args: ['test', '--release', '--quiet'], cwd: path.join(repoRoot, 'web', 'rs') },
+    { name: 'WASM 重建产物 vs 旧 blob', cmd: process.execPath, args: ['tests/wasm_parity.mjs'], cwd: repoRoot },
     { name: '跨语言等价性', cmd: process.execPath, args: ['tests/cross_language.test.mjs'], cwd: repoRoot },
     { name: 'Web 端契约 + worker 往返', cmd: process.execPath, args: ['tests/web_ui.test.mjs'], cwd: repoRoot },
 ];
