@@ -1,0 +1,21 @@
+{
+  "name": "hilbert-crypt",
+  "version": "2.1.0",
+  "private": true,
+  "description": "小土豆图片混淆工具：基于广义希尔伯特曲线的图像混淆/解混淆（C++ / Web-WASM / Python 三端算法一致）",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/run_all.mjs",
+    "test:cross": "node tests/cross_language.test.mjs",
+    "test:web": "node tests/web_ui.test.mjs",
+    "test:e2e": "node tests/e2e_cli.test.mjs",
+    "test:wasm-parity": "node tests/wasm_parity.mjs tests/out/parity/baseline-v2b/lp_crypt_wasm_core_bg.wasm web/src/wasm/lp_crypt_wasm_core_bg.wasm",
+    "bench": "node tests/bench.mjs",
+    "build:cpp": "powershell -NoProfile -ExecutionPolicy Bypass -File Cpp/build.ps1",
+    "build:wasm": "powershell -NoProfile -ExecutionPolicy Bypass -File web/rs/build.ps1",
+    "serve:web": "node tests/serve_web.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
