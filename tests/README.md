@@ -40,12 +40,18 @@ node tests/run_all.mjs --quick  # 跳过耗时的端到端大图用例
 | `repo_bloat_identify.mjs` | 按魔数判断类型，并用 `git hash-object` 反查工作区里的同名文件，认领"旧版本残留" |
 | `repo_bloat_dimensions.mjs` | 按图像尺寸（PNG IHDR / JPEG SOF）认领无法按内容匹配的历史图片 |
 | `repo_bloat_export.mjs` | 把只存在于 `.git` 里的图片导出到 `tests/out/unreachable/` 并生成 `index.html` 供人工确认 |
+| `repo_bloat_archive.mjs` | 把**全部**不可达对象导出到忽略目录留档（逐个用 `git hash-object` 复核），`--gc` 时在校验全过后执行清理 |
 
-清理（不可逆，会永久删除不可达对象，请先备份）：
+清理（不可逆，会永久删除不可达对象）：
 
 ```bash
-git gc --prune=now
+node tests/repo_bloat_archive.mjs --gc     # 推荐：先留档、校验，再清理
+git gc --prune=now                         # 或者手动清理
 ```
+
+2026-09-12 已执行过一次：`.git` 从 728.5MB 降至 9.6MB（释放 718.9MB），
+导出的 89 个对象（726.6MB）留档在 `archive/2026-09-12-orphaned-objects/`（该目录被忽略），
+清单见其中的 `MANIFEST.md`。
 
 ## 产物目录
 

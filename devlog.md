@@ -127,3 +127,20 @@
 3. 仅 Windows 验证过；`windows.h`/`psapi` 依赖与 `Cpp/build.ps1` 的 MSYS2 路径都写死了。
 4. `web/versions/` 里的历史版本只是存档，不再维护；若线上 Pages 还挂着旧版，
    建议换成 `web/src` 的新版本并同步说明偏移量变更。
+
+### 仓库瘦身（同日追加）
+
+体检时发现"仓库 728MB、但工作区只有 9MB"，用 `tests/repo_bloat*.mjs` 逐层盘查后确认：
+20 个提交里从没提交过这些大文件，726.6MB 全是**不可达的松散对象**——早年在 PyInstaller
+打包流程里 `git add` 过 `build/`、`*.exe`、`*.7z` 与测试大图，而对应的提交后来被改写/丢弃，
+对象却一直留在对象库里（`.gitignore` 是后来才加的，管不了已入对象库的东西）：
+
+- PyInstaller 产物约 536MB：`bbw_tphx_with_opencv.exe/.pkg/.7z`（121+121+120MB）、
+  `bbw_tphx`、`bbw_tphx_NumPy` 各自的 exe/pkg/7z，以及 3 个 `PYZ-00.pyz`
+- 测试大图约 130MB：4 张 4096×4096、2160×3840 竖版、3000×3583 等
+- 旧版 `unifont-all.ttf` 20.2MB
+
+处理方式：全部 89 个对象导出到 `archive/2026-09-12-orphaned-objects/`（含 `MANIFEST.md`
+与逐个 `git hash-object` 复核记录，校验 89/89 通过）作为纪念，随后 `git gc --prune=now`。
+结果：`.git` 728.5MB → 9.6MB，clone 体积 737MB → 18.7MB，提交、标签、测试全部完好。
+
