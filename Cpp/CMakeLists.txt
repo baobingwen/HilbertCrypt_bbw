@@ -38,48 +38,57 @@ if(WIN32)
         COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_DIR}
     )
 
-    # 复制OpenCV DLL（MSYS2路径格式）
-    # 直接指定MSYS2的DLL路径并验证文件存在性
+    # 复制运行时依赖 DLL（MSYS2 路径格式）
+    # 不写死具体版本号：OpenCV 的 DLL 名带 ABI 版本（如 libopencv_core-412.dll），
+    # 写死会在升级 OpenCV 后直接 FATAL_ERROR（历史上就因此踩过坑）。
     set(MSYS2_BIN_DIR "D:/msys64/mingw64/bin")
-    set(OPENCV_DLLS
-        "${MSYS2_BIN_DIR}/libgcc_s_seh-1.dll"
-        "${MSYS2_BIN_DIR}/libstdc++-6.dll"
-        "${MSYS2_BIN_DIR}/libwinpthread-1.dll"
-        "${MSYS2_BIN_DIR}/libopencv_core-411.dll"
-        "${MSYS2_BIN_DIR}/libopencv_imgproc-411.dll"
-        "${MSYS2_BIN_DIR}/libopencv_highgui-411.dll"
-        "${MSYS2_BIN_DIR}/libopencv_imgcodecs-411.dll"
-        "${MSYS2_BIN_DIR}/libtbb12.dll"
-        "${MSYS2_BIN_DIR}/libopenblas.dll"
-        "${MSYS2_BIN_DIR}/libjpeg-8.dll"
-        "${MSYS2_BIN_DIR}/libjbig-0.dll"
-        "${MSYS2_BIN_DIR}/libOpenEXR-3_3.dll"
-        "${MSYS2_BIN_DIR}/libOpenEXRCore-3_3.dll"
-        "${MSYS2_BIN_DIR}/libopenjp2-7.dll"
-        "${MSYS2_BIN_DIR}/libpng16-16.dll"
-        "${MSYS2_BIN_DIR}/libtiff-6.dll"
-        "${MSYS2_BIN_DIR}/libwebp-7.dll"
-        "${MSYS2_BIN_DIR}/libwebpdemux-2.dll"
-        "${MSYS2_BIN_DIR}/libwebpmux-3.dll"
-        "${MSYS2_BIN_DIR}/libImath-3_1.dll"
-        "${MSYS2_BIN_DIR}/libIlmThread-3_3.dll"
-        "${MSYS2_BIN_DIR}/libIex-3_3.dll"
-        "${MSYS2_BIN_DIR}/libdeflate.dll"
-        "${MSYS2_BIN_DIR}/libLerc.dll"
-        "${MSYS2_BIN_DIR}/libsharpyuv-0.dll"
+    set(RUNTIME_DLL_NAMES
+        "libgcc_s_seh-1.dll"
+        "libstdc++-6.dll"
+        "libwinpthread-1.dll"
+        "libtbb12.dll"
+        "libopenblas.dll"
+        "libjpeg-8.dll"
+        "libjbig-0.dll"
+        "libOpenEXR-3_3.dll"
+        "libOpenEXRCore-3_3.dll"
+        "libopenjp2-7.dll"
+        "libpng16-16.dll"
+        "libtiff-6.dll"
+        "libwebp-7.dll"
+        "libwebpdemux-2.dll"
+        "libwebpmux-3.dll"
+        "libImath-3_1.dll"
+        "libIlmThread-3_3.dll"
+        "libIex-3_3.dll"
+        "libdeflate.dll"
+        "libLerc.dll"
+        "libsharpyuv-0.dll"
     )
 
-    # 逐个复制DLL文件并添加验证
-    foreach(dll ${OPENCV_DLLS})
-        if(EXISTS ${dll})
-            add_custom_command(TARGET hilbert_encrypt POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${dll}"
-                ${OUTPUT_DIR}
-                COMMENT "Copying ${dll}"
-            )
-        else()
-            message(FATAL_ERROR "DLL文件不存在: ${dll}")
+    set(DLLS_TO_COPY "")
+    foreach(name ${RUNTIME_DLL_NAMES})
+        if(EXISTS "${MSYS2_BIN_DIR}/${name}")
+            list(APPEND DLLS_TO_COPY "${MSYS2_BIN_DIR}/${name}")
         endif()
+    endforeach()
+
+    # OpenCV 核心库：按实际安装的 ABI 版本通配匹配
+    file(GLOB OPENCV_DLLS "${MSYS2_BIN_DIR}/libopencv_core-*.dll"
+                          "${MSYS2_BIN_DIR}/libopencv_imgproc-*.dll"
+                          "${MSYS2_BIN_DIR}/libopencv_imgcodecs-*.dll"
+                          "${MSYS2_BIN_DIR}/libopencv_highgui-*.dll")
+    if(NOT OPENCV_DLLS)
+        message(WARNING "在 ${MSYS2_BIN_DIR} 下没找到 OpenCV 运行时 DLL，"
+                        "编译产物需要手动保证 DLL 可被找到（PATH 或复制到 bin/）")
+    endif()
+
+    foreach(dll ${DLLS_TO_COPY} ${OPENCV_DLLS})
+        add_custom_command(TARGET hilbert_encrypt POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${dll}"
+            ${OUTPUT_DIR}
+            COMMENT "Copying ${dll}"
+        )
     endforeach()
 endif()
