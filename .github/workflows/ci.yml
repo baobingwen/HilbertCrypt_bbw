@@ -54,9 +54,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 不加 targets：工具链版本由 web/rs/rust-toolchain.toml 固定（含 wasm32 target），
+      # 这是"产物字节可复现"的前提——不同 rustc 编出的 wasm 字节并不相同。
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
+
+      - name: 显示工具链版本
+        working-directory: web/rs
+        run: cargo --version && rustc --version
 
       - name: 安装 wasm-bindgen-cli（版本必须与 Cargo.toml 完全一致）
         run: |
@@ -83,18 +87,17 @@ jobs:
         run: |
           set -euo pipefail
           fail=0
-          for pair in \
-            "lp_crypt_wasm_core.js:web/rs/target/bindgen/lp_crypt_wasm_core.js" \
-            "lp_crypt_wasm_core_bg.wasm:web/rs/target/bindgen/lp_crypt_wasm_core_bg.wasm"; do
-            name="${pair%%:*}"
-            built="${pair#*:}"
+          for name in lp_crypt_wasm_core.js lp_crypt_wasm_core_bg.wasm; do
+            built="web/rs/target/bindgen/$name"
             committed="web/src/wasm/$name"
             want=$(sha256sum "$built" | cut -d' ' -f1)
             got=$(sha256sum "$committed" | cut -d' ' -f1)
             if [ "$want" = "$got" ]; then
-              echo "OK   $name 哈希一致"
+              echo "OK   $name 与源码构建结果一致 ($want)"
             else
               echo "::error file=$committed::$name 与源码构建结果不一致，请运行 web/rs/build.ps1 并提交产物"
+              echo "     期望 $want"
+              echo "     实际 $got"
               fail=1
             fi
           done
@@ -139,7 +142,32 @@ jobs:
             -L/mingw64/lib \
             -lopencv_core -lopencv_imgproc -lopencv_imgcodecs -lpsapi
 
+      - name: 复制运行时依赖（自动解析导入表，含间接依赖）
+        shell: msys2 {0}
+        run: |
+          set -euo pipefail
+          # 与 Cpp/build.ps1 同样的思路：用 objdump 解析导入表算依赖闭包。
+          # 手工维护 DLL 清单会漏掉 OpenCV 的间接依赖（zlib/lzma/zstd 等）。
+          cd Cpp/bin
+          system='^(api-ms-|ext-ms-|KERNEL|USER32|ADVAPI|SHELL32|GDI32|OLE32|OLEAUT|COMDLG|WS2_|WSOCK|VCRUNTIME|ucrtbase|MSVCP|ntdll|bcrypt|CRYPT32|PSAPI|WINMM|VERSION|IMM32|SHLWAPI|mpr|dbghelp|POWRPROF|DWMAPI|UxTheme|d3d|DXGI|opengl|setupapi|CFGMGR32|RPCRT4|secur32|normaliz|WLDAP32|urlmon|wininet|IPHLPAPI|DNSAPI|NETAPI32|USERENV|PROFAPI|AUTHZ|SSPICLI|schannel|ncrypt|WINTRUST|imagehlp)'
+          queue=(hilbert_encrypt.exe)
+          while [ ${#queue[@]} -gt 0 ]; do
+            file="${queue[0]}"; queue=("${queue[@]:1}")
+            for dll in $(objdump -p "$file" 2>/dev/null | awk '/DLL Name:/{print $3}'); do
+              [[ "$dll" =~ $system ]] && continue
+              [ -f "$dll" ] && continue
+              if [ -f "/mingw64/bin/$dll" ]; then
+                cp "/mingw64/bin/$dll" .
+                queue+=("$dll")
+              fi
+            done
+          done
+          echo "bin 目录现有 $(ls -1 *.dll | wc -l) 个 DLL"
+
       - name: 端到端 CLI（C++ 与 Python 产物互通）
+        env:
+          # Node 起的子进程不带 MSYS2 的 PATH，把 mingw64/bin 加进去，确保 exe 能找到依赖
+          PATH: C:\msys64\mingw64\bin;${{ env.PATH }}
         run: node tests/e2e_cli.test.mjs
 
       - name: Rust 单测 + 跨语言 + Web 契约

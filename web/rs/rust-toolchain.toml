@@ -1,0 +1,12 @@
+# 固定 Rust 工具链版本。
+#
+# 目的：让 web/src/wasm/ 下的产物**字节可复现**。不同 rustc 版本编译出的 wasm 不同
+# （wasm-bindgen 胶水里的分配器导出名也会跟着变），因此 CI 里"提交的产物 == 从源码构建的产物"
+# 这条断言只有在工具链固定时才有意义。
+#
+# 升级方式：改成本地验证过的新版本，然后运行 web/rs/build.ps1 重新生成并提交产物。
+# 本文件只影响 web/rs 这个 crate（rustup 会在该目录及子目录生效）。
+[toolchain]
+channel = "1.86.0"
+components = ["rustfmt", "clippy"]
+targets = ["wasm32-unknown-unknown"]
