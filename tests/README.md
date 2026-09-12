@@ -29,6 +29,24 @@ node tests/run_all.mjs --quick  # 跳过耗时的端到端大图用例
 | `png.mjs` | 测试用的极简 PNG 解码器：按**像素**比较，不受编码器滤波策略影响 |
 | `serve_web.mjs` | 本地静态服务器（正确设置 `application/wasm`），用于浏览器手工验证 |
 
+## 仓库体积排查（只读工具）
+
+`.git` 里可能残留"曾经 `git add` 过、但从未进入提交"的大对象。下面几个脚本用来定位它们：
+
+| 脚本 | 作用 |
+| --- | --- |
+| `repo_bloat.mjs` | 概览：`.git` 实际占用、可达对象大小、按目录/扩展名分布 |
+| `repo_bloat_unreachable.mjs` | 列出所有**不可达**对象（含 pack 与松散）并按大小排序 |
+| `repo_bloat_identify.mjs` | 按魔数判断类型，并用 `git hash-object` 反查工作区里的同名文件，认领"旧版本残留" |
+| `repo_bloat_dimensions.mjs` | 按图像尺寸（PNG IHDR / JPEG SOF）认领无法按内容匹配的历史图片 |
+| `repo_bloat_export.mjs` | 把只存在于 `.git` 里的图片导出到 `tests/out/unreachable/` 并生成 `index.html` 供人工确认 |
+
+清理（不可逆，会永久删除不可达对象，请先备份）：
+
+```bash
+git gc --prune=now
+```
+
 ## 产物目录
 
-`tests/out/` 是运行期产物（沙箱目录、基准图、临时 fixture），已被 `.gitignore` 忽略。
+`tests/out/` 是运行期产物（沙箱目录、基准图、临时 fixture、体积排查报告），已被 `.gitignore` 忽略。
