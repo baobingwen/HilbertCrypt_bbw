@@ -71,7 +71,7 @@ jobs:
 
       - name: 编译 wasm
         working-directory: web/rs
-        run: cargo build --release --target wasm32-unknown-unknown
+        run: cargo build --locked --release --target wasm32-unknown-unknown
 
       - name: wasm-bindgen 生成 JS 胶水
         working-directory: web/rs
@@ -83,25 +83,26 @@ jobs:
       - name: 行为比对（新构建 vs 仓库内产物 vs v2-alpha 旧 blob）
         run: node tests/wasm_parity.mjs
 
-      - name: 仓库内产物应与源码构建结果一致（防止改了 lib.rs 忘记重新构建）
+      - name: 产物可复现性报告
         run: |
-          set -euo pipefail
-          fail=0
+          set -uo pipefail
+          echo "宿主机: $(uname -s) / 工具链: $(rustc --version)"
+          echo "已提交产物的发布环境是 Windows + rustc 1.86.0（见 web/rs/README.md）。"
+          echo "注意：wasm 的字节可复现性只在**同一宿主 + 同一工具链**下成立，"
+          echo "跨宿主（Windows/Linux）逐字节比较没有意义，因此这里只报告、不判失败；"
+          echo "真正的把关是上一步的行为比对（导出表 / 曲线坐标 / 像素输出 / 边界行为）。"
           for name in lp_crypt_wasm_core.js lp_crypt_wasm_core_bg.wasm; do
-            built="web/rs/target/bindgen/$name"
-            committed="web/src/wasm/$name"
-            want=$(sha256sum "$built" | cut -d' ' -f1)
-            got=$(sha256sum "$committed" | cut -d' ' -f1)
+            want=$(sha256sum "web/rs/target/bindgen/$name" | cut -d' ' -f1)
+            got=$(sha256sum "web/src/wasm/$name" | cut -d' ' -f1)
             if [ "$want" = "$got" ]; then
-              echo "OK   $name 与源码构建结果一致 ($want)"
+              echo "一致   $name  $want"
             else
-              echo "::error file=$committed::$name 与源码构建结果不一致，请运行 web/rs/build.ps1 并提交产物"
-              echo "     期望 $want"
-              echo "     实际 $got"
-              fail=1
+              echo "不同   $name"
+              echo "         新构建 $want"
+              echo "         已提交 $got"
             fi
           done
-          exit $fail
+          echo "若两者不同且你改过 web/rs/src/lib.rs，请在 Windows 上重新运行 web/rs/build.ps1 并提交产物。"
 
   windows:
     name: C++ 端到端（Windows + MSYS2 OpenCV）
@@ -120,7 +121,8 @@ jobs:
           python-version: '3.12'
 
       - name: 安装 Python 依赖
-        run: python -m pip install --quiet --upgrade pip numpy pillow opencv-python-headless
+        # 测试只用 Pillow 生成/比对图片（刻意不用 OpenCV，避免"用被测程序的同一实现自证"）
+        run: python -m pip install --quiet --upgrade pip numpy pillow
 
       - uses: msys2/setup-msys2@v2
         with:

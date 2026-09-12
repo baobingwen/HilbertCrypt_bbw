@@ -138,6 +138,11 @@ export function decodePng(buf) {
     return { width, height, channels, data: rgba };
 }
 
+/** 解码 PNG 并返回 RGBA 原始字节（所有色彩模式统一展开成 RGBA，便于跨格式判等） */
+export function pngToRgba(buf) {
+    return decodePng(buf).data;
+}
+
 /** 比较两个 PNG 的像素（忽略编码差异与色彩模式差异） */
 export function pngPixelsEqual(a, b) {
     try {

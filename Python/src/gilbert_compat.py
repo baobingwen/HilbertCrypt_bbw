@@ -27,6 +27,13 @@ from gilbert_core import (  # noqa: E402
     gilbert_curve_offsets,
 )
 
+# 与 cli.py 同样的控制台编码兜底：非 UTF-8 控制台下输出中文/符号会抛 UnicodeEncodeError
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, OSError):  # pragma: no cover
+        pass
+
 
 def tool_main(argv) -> int:
     stdin = sys.stdin.buffer

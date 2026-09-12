@@ -46,8 +46,21 @@ cp target/bindgen/lp_crypt_wasm_core.js target/bindgen/lp_crypt_wasm_core_bg.was
 cd web/rs && cargo test --release
 
 # 2. 与旧版二进制逐字节行为比对（导出表 / 曲线坐标 / 像素输出 / 边界行为）
-node tests/wasm_parity.mjs <旧wasm> <新wasm>
+node tests/wasm_parity.mjs          # 不带参数时自动用 web/versions 里的 v2-alpha 旧 blob 作基线
 ```
+
+### 关于"字节可复现"的边界（重要）
+
+`web/src/wasm/` 下的产物**只在同一宿主 + 同一工具链下字节可复现**：
+
+- 工具链由 `rust-toolchain.toml` 固定（当前 1.86.0）；`Cargo.toml` 把 wasm-bindgen 锁到 `=0.2.100`，
+  `Cargo.lock` 一并提交，CI 用 `cargo build --locked`；
+- 本机实测：清掉 `target/` 连续构建两次，`.js` 与 `_bg.wasm` 哈希完全一致；
+- **跨宿主（Windows ↔ Linux）逐字节比较没有意义**：同一份源码在不同宿主上编出的 wasm 并不相同。
+  因此 CI 的 Linux job 只做行为比对，字节比对仅作报告；发布产物请统一在 Windows 上用
+  `build.ps1` 生成。
+- 升级工具链的正确姿势：改 `rust-toolchain.toml` → 在 Windows 上跑 `web/rs/build.ps1`
+  → 提交新产物（CI 的行为比对会守住语义不变）。
 
 关于 `--reference-types`：旧版 wasm 使用了带有 externref 表的 ABI（导出 `__wbindgen_export_0` 表），
 不加该标志生成的胶水走的是另一套（无 externref 表）ABI。为保持与浏览器端行为一致，这里显式加上。

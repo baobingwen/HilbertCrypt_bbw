@@ -18,6 +18,15 @@ if __package__ in (None, ""):
 
 from gilbert_core import GOLDEN_RATIO, HilbertImageProcessor  # noqa: E402
 
+# 控制台编码兜底：Windows 上 Python 默认按本地代码页输出（runner 是 cp1252，中文系统是 cp936），
+# 这些编码表示不了本程序的输出字符，会直接抛 UnicodeEncodeError 把 CLI 打断。
+# 之前只在中文 Windows 上开发，GBK 恰好能编中文，问题一直没暴露，直到在 CI 上炸掉。
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, OSError):  # pragma: no cover - 老解释器或被重定向的特殊流
+        pass
+
 SUPPORTED_EXTS = (".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tiff", ".tif")
 
 
