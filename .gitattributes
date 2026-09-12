@@ -1,0 +1,45 @@
+# 默认：文本文件一律以 LF 存入仓库，工作区按平台默认检出。
+# 这样做的原因有两个：
+#   1. web/src/wasm/*.js 是 wasm-bindgen 生成的产物，CI 会校验"提交的字节 == 重新构建的字节"，
+#      任何行尾改写都会让校验失败；
+#   2. 跨平台（Windows/Linux/macOS）测试比对文件哈希时不会因为 CRLF 出现假差异。
+* text=auto
+
+# 生成产物 / 需要逐字节稳定的文件，强制 LF
+*.js      text eol=lf
+*.mjs     text eol=lf
+*.json    text eol=lf
+*.ts      text eol=lf
+*.css     text eol=lf
+*.html    text eol=lf
+*.yml     text eol=lf
+*.yaml    text eol=lf
+*.md      text eol=lf
+*.txt     text eol=lf
+*.rs      text eol=lf
+*.toml    text eol=lf
+*.py      text eol=lf
+*.cpp     text eol=lf
+*.h       text eol=lf
+*.ps1     text eol=lf
+*.sh      text eol=lf
+
+# 二进制：不许做任何行尾/编码转换
+*.wasm    binary
+*.woff2   binary
+*.woff    binary
+*.ttf     binary
+*.otf     binary
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.bmp     binary
+*.tiff    binary
+*.webp    binary
+*.exe     binary
+*.dll     binary
+*.7z      binary
+*.zip     binary
+*.pyz     binary
+*.pkg     binary
