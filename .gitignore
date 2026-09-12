@@ -20,7 +20,7 @@ dist/
 *.dll.a
 
 # ---------------------------------------------------------------- 运行/测试产物
-tests/out/
+# 测试目录的规则见 tests/.gitignore（测试代码进版本库，测试产物不进）
 *.log
 files/
 
@@ -54,5 +54,20 @@ Python/pre/
 archive/
 
 # ---------------------------------------------------------------- 版本目录里的临时分支快照
-**/alpha/
+# alpha 快照一律不进版本库（web/versions/beta 与 Release 是原本就跟踪的，不受影响）
+/web/versions/alpha/
+
+# 唯一例外：v2-alpha 的 wasm 产物是 tests/wasm_parity.mjs 的回归基线，必须留在版本库里。
+# git 的规则是"要取消忽略一个文件，必须先能进到它的父目录"，所以逐级放开到 wasm/ 为止；
+# 每放开一层就用 `/*` 把该层其余内容立刻重新忽略，避免整批历史快照变成可添加状态。
+!/web/versions/alpha/
+/web/versions/alpha/*
+!/web/versions/alpha/v2/
+/web/versions/alpha/v2/*
+!/web/versions/alpha/v2/v2-alpha-0/
+/web/versions/alpha/v2/v2-alpha-0/*
+!/web/versions/alpha/v2/v2-alpha-0/wasm/
+/web/versions/alpha/v2/v2-alpha-0/wasm/*
+!/web/versions/alpha/v2/v2-alpha-0/wasm/lp_crypt_wasm_core.js
+!/web/versions/alpha/v2/v2-alpha-0/wasm/lp_crypt_wasm_core_bg.wasm
 对png压缩系数的研究.md
