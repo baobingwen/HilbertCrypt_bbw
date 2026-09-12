@@ -57,12 +57,21 @@ Cpp/bin/hilbert_encrypt.exe -h                       # 完整帮助
 
 #### Web 版（浏览器，WASM 加速）
 
+- 线上地址（GitHub Pages）：<https://baobingwen.github.io/tools/GilbertCrypt/test/>
+- 本地运行当前版本：
+
 ```powershell
-node tests/serve_web.mjs        # 本地起服务后访问 http://127.0.0.1:8080/
+node tests/serve_web.mjs        # 起服务后访问 http://127.0.0.1:8080/
 ```
 
 打开页面 → 选择或拖入图片 → 点"混淆/解混淆"。页面上的"偏移参数"留空或填 `auto` 即使用默认值，
 与命令行公式完全一致；填数字则用该偏移量（可用于解出早期版本用 `auto` 混淆的图片，见"兼容性"）。
+
+> ⚠️ 线上 Pages 站点**尚未同步到本版本**，它用的是旧的 `round(φ×(总像素数-1))` 偏移量：
+> 用线上版本 `auto` 混淆的图片，需要把偏移量手动 ±1 才能用命令行/新版本解出。
+
+> 🔧 本机实测：本环境解析 `baobingwen.github.io` 得到的是非公网地址，无法替你确认线上页面是否仍在服务，
+> 上面这条按"线上仍是旧版"处理，请你以浏览器实际打开的结果为准。
 
 #### Python 版
 
