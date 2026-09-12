@@ -51,10 +51,15 @@ function runBuffer(cmd, args, cwd) {
 
 async function run(cmd, args, cwd) {
     const res = await runBuffer(cmd, args, cwd);
+    const stderr = res.stderr.toString('utf8');
     return {
         code: res.code,
         stdout: res.stdout.toString('utf8'),
-        stderr: res.stderr.toString('utf8'),
+        // 失败时附带命令行与工作目录/退出码，否则 CI 上只看到一个 exit code，没法定位
+        stderr:
+            res.code === 0
+                ? stderr
+                : `${stderr}\n[cmd] ${cmd} ${args.join(' ')}\n[cwd] ${cwd}\n[exit] ${res.code}`,
     };
 }
 

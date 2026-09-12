@@ -164,6 +164,18 @@ jobs:
           done
           echo "bin 目录现有 $(ls -1 *.dll | wc -l) 个 DLL"
 
+      - name: 预检（先确认产物真的能在这个 runner 上启动）
+        shell: pwsh
+        env:
+          PATH: C:\msys64\mingw64\bin;${{ env.PATH }}
+        run: |
+          Write-Host "bin 内容:"
+          Get-ChildItem Cpp\bin | Select-Object Name, Length | Format-Table -AutoSize | Out-String | Write-Host
+          $out = & .\Cpp\bin\hilbert_encrypt.exe -h 2>&1 | Out-String
+          Write-Host "退出码: $LASTEXITCODE"
+          Write-Host $out
+          if ($LASTEXITCODE -ne 0) { throw "C++ 产物无法启动（退出码 $LASTEXITCODE），很可能是缺 DLL" }
+
       - name: 端到端 CLI（C++ 与 Python 产物互通）
         env:
           # Node 起的子进程不带 MSYS2 的 PATH，把 mingw64/bin 加进去，确保 exe 能找到依赖
