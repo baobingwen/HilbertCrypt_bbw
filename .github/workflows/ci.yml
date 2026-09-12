@@ -1,0 +1,146 @@
+name: CI
+
+# 跨语言/端到端测试依赖各语言工具链，因此按平台拆分：
+#   linux   : Rust 单测 + 跨语言等价性 + Web 契约（不需要 C++/OpenCV）
+#   wasm    : 从源码重建 wasm，验证浏览器端产物可复现
+#   windows : 用 MSYS2 的 OpenCV 编译 C++ 端，跑端到端（C++ 目前仍依赖 windows.h/psapi）
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  linux:
+    name: Rust 单测 + 跨语言 + Web 契约（Linux）
+    runs-on: ubuntu-latest
+    env:
+      PY_EXE: python
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安装 Python 依赖
+        run: python -m pip install --quiet --upgrade pip numpy pillow
+
+      - name: Rust 核心单元测试
+        working-directory: web/rs
+        run: cargo test --release
+
+      - name: 跨语言等价性（Node 参考 / Rust-WASM / Python）
+        run: node tests/cross_language.test.mjs
+
+      - name: Web 端契约 + 真实尺寸 worker 往返
+        run: node tests/web_ui.test.mjs
+
+      - name: 推送前体积检查（不该存在待上传的大对象）
+        run: node tests/remote_bloat_check.mjs --min=4194304 --top=10
+
+  wasm:
+    name: 从源码重建 WASM 并校验可复现（Linux）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: 安装 wasm-bindgen-cli（版本必须与 Cargo.toml 完全一致）
+        run: |
+          set -euo pipefail
+          version=$(grep -oP 'wasm-bindgen = "=\K[0-9.]+' web/rs/Cargo.toml)
+          echo "Cargo.toml 要求 wasm-bindgen $version"
+          cargo install wasm-bindgen-cli --version "$version" --locked
+
+      - name: 编译 wasm
+        working-directory: web/rs
+        run: cargo build --release --target wasm32-unknown-unknown
+
+      - name: wasm-bindgen 生成 JS 胶水
+        working-directory: web/rs
+        run: |
+          wasm-bindgen --target web --reference-types \
+            --out-dir target/bindgen --out-name lp_crypt_wasm_core \
+            target/wasm32-unknown-unknown/release/lp_crypt_wasm_core.wasm
+
+      - name: 行为比对（新构建 vs 仓库内产物 vs v2-alpha 旧 blob）
+        run: node tests/wasm_parity.mjs
+
+      - name: 仓库内产物应与源码构建结果一致（防止改了 lib.rs 忘记重新构建）
+        run: |
+          set -euo pipefail
+          fail=0
+          for pair in \
+            "lp_crypt_wasm_core.js:web/rs/target/bindgen/lp_crypt_wasm_core.js" \
+            "lp_crypt_wasm_core_bg.wasm:web/rs/target/bindgen/lp_crypt_wasm_core_bg.wasm"; do
+            name="${pair%%:*}"
+            built="${pair#*:}"
+            committed="web/src/wasm/$name"
+            want=$(sha256sum "$built" | cut -d' ' -f1)
+            got=$(sha256sum "$committed" | cut -d' ' -f1)
+            if [ "$want" = "$got" ]; then
+              echo "OK   $name 哈希一致"
+            else
+              echo "::error file=$committed::$name 与源码构建结果不一致，请运行 web/rs/build.ps1 并提交产物"
+              fail=1
+            fi
+          done
+          exit $fail
+
+  windows:
+    name: C++ 端到端（Windows + MSYS2 OpenCV）
+    runs-on: windows-latest
+    env:
+      PY_EXE: python
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安装 Python 依赖
+        run: python -m pip install --quiet --upgrade pip numpy pillow opencv-python-headless
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: false
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-opencv
+
+      - name: 编译 C++ 命令行版
+        shell: msys2 {0}
+        run: |
+          set -euo pipefail
+          mkdir -p Cpp/bin
+          g++ -std=c++20 -O2 -Wall -Wextra \
+            -I/mingw64/include/opencv4 \
+            Cpp/hilbert_encrypt.cpp \
+            -o Cpp/bin/hilbert_encrypt.exe \
+            -L/mingw64/lib \
+            -lopencv_core -lopencv_imgproc -lopencv_imgcodecs -lpsapi
+
+      - name: 端到端 CLI（C++ 与 Python 产物互通）
+        run: node tests/e2e_cli.test.mjs
+
+      - name: Rust 单测 + 跨语言 + Web 契约
+        run: node tests/run_all.mjs --quick

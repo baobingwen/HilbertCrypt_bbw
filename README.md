@@ -1,5 +1,8 @@
 # 小土豆图片混淆工具 / Potato Image Obfuscator
 
+[![CI](https://github.com/baobingwen/HilbertCrypt_bbw/actions/workflows/ci.yml/badge.svg)](https://github.com/baobingwen/HilbertCrypt_bbw/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 <!-- 顶部语言切换提示 -->
 <details>
 <summary>🌐 语言切换 / Language Switch</summary>
@@ -99,11 +102,19 @@ C++ 用固定大小线程池并发处理多张图；单张图的耗时主要在�
 ### 🧪 测试
 
 ```powershell
-node tests/run_all.mjs          # 全部（Rust 单测 + 跨语言 + Web 契约 + 端到端 CLI）
+node tests/run_all.mjs          # 全部（Rust 单测 + WASM 新旧比对 + 跨语言 + Web 契约 + 端到端 CLI）
 node tests/run_all.mjs --quick  # 跳过耗时用例
 ```
 
-详见 [`tests/README.md`](tests/README.md)。
+详见 [`tests/README.md`](tests/README.md)。CI 配置见 [`.github/workflows/ci.yml`](.github/workflows/ci.yml)：
+Linux 上跑 Rust 单测 / 跨语言 / Web 契约，并校验 wasm 产物可复现；Windows 上用 MSYS2 的 OpenCV
+编译 C++ 后跑端到端。
+
+### 📝 版本与许可
+
+- 变更历史见 [`CHANGELOG.md`](CHANGELOG.md)（v2.1.0 起维护）；
+  开发过程记录见 [`devlog.md`](devlog.md)。
+- 许可证：[MIT](LICENSE)。
 
 ### ⚠️ 兼容性说明（重要）
 
