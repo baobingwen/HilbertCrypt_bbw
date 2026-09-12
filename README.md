@@ -13,85 +13,127 @@
 
 ## 🇨🇳 中文文档
 
-### 项目概述
+### 🚀 项目概述
 
-一个基于希尔伯特曲线和黄金分割比优化的图片混淆工具，支持命令行（C++、Python）和Web端（HTML/JS）两种使用方式。通过像素位移算法实现混淆与解混淆，保障图像内容的安全性。
+一个基于广义希尔伯特（Gilbert）曲线与黄金分割比偏移的图片混淆工具，提供命令行（C++、Python）
+与 Web（HTML + WebAssembly）两种使用方式：把图像像素沿空间填充曲线重新排列，并整体循环位移。
 
-### 功能特性
+> **混淆 ≠ 加密。** 本项目不涉及密钥，`offset` 由图片尺寸公开推导，任何人都能用同样的工具还原。
+> 它解决的是"防止图片被随意浏览/被内容识别模型直接读取"，不是保密。需要真正保密请使用
+> AES/RSA 之类的加密方案。
 
-#### 核心算法
+### ✨ 核心算法
 
-- **希尔伯特曲线映射**：将图像像素按空间填充曲线重新排列
-- **黄金分割比优化**：自动计算最佳位移参数，增强混淆强度
-- **抗压缩处理**：默认输出PNG格式，保留图像质量
+1. 生成覆盖 `width × height` 矩形、且每个像素恰好访问一次的**广义希尔伯特曲线**；
+2. 沿曲线做循环位移：加密时 `dst[(i + offset) % total] = src[i]`，解密反向；
+3. `offset = round(0.618033988749895 × total)`，也可手动指定。
 
-#### 双端支持
+三段实现（C++、Rust/WASM、Python）使用**同一条曲线、同一个偏移量公式、同样的 4 字节/像素语义**，
+产物可以互相解混淆——这一点由 `tests/cross_language.test.mjs` 强制保证（四端逐字节比对）。
 
-- **命令行工具**：批量处理`files`文件夹内的图片
-- **Web界面**：支持拖放操作，实时预览处理结果
+### 📦 各端用法
 
-### 使用方法
+#### C++ 命令行（主力，最快）
 
-#### C++版本
+环境：MSYS2 mingw64 + OpenCV 4.12（`g++ -std=c++20`）。
 
-##### 环境信息
+```powershell
+powershell -File Cpp/build.ps1          # 构建，产物在 Cpp/bin/hilbert_encrypt.exe
 
-1. mingw-w64-x86_64-opencv 4.11.0-3
-2. c++17
-
-##### 编译方法
-
-1. g++编译指令（我的环境）
-
-```bash
-D:/msys64/mingw64/bin/g++.exe -std=c++20 -g -ID:/msys64/mingw64/include/opencv4 E:/Projects/HilbertCrypt/Cpp/hilbert_encrypt.cpp -o E:/Projects/HilbertCrypt/Cpp/output.exe -LD:/msys64/mingw64/lib -lopencv_core -lopencv_highgui -lopencv_imgcodecs
+cd <存放图片的目录>
+Cpp/bin/hilbert_encrypt.exe -e                       # 混淆 files/ 下的图片
+Cpp/bin/hilbert_encrypt.exe -d                       # 解混淆
+Cpp/bin/hilbert_encrypt.exe -e -o 1234567            # 指定偏移量（auto 为默认）
+Cpp/bin/hilbert_encrypt.exe -e -j 4                  # 指定并发线程数
+Cpp/bin/hilbert_encrypt.exe -h                       # 完整帮助
 ```
 
-2. Cmake自动构建
+要点：
 
-```bash
-cd ./Cpp
+- 处理 `./files/` 目录，**原地覆盖**原文件，请先备份；
+- PNG/TIFF/BMP 无损，可完整还原；**JPG/WebP 是有损格式**，混淆后再压缩会破坏像素对应关系，
+  程序会打印警告，并可用 `--jpeg-quality` / `--webp-quality` 调整；
+- 写入采用"临时文件 + 改名"的原子方式，中途失败不会留下半张图。
 
-# 清理旧构建
-rm -rf build bin
+#### Web 版（浏览器，WASM 加速）
 
-# 重新生成配置
-cmake -B build -G "MinGW Makefiles" \
-  -DCMAKE_C_COMPILER=/path/to/your/gcc.exe \
-  -DCMAKE_CXX_COMPILER=/path/to/your/g++.exe
-
-# 执行构建（显示详细日志）
-cmake --build build --verbose
+```powershell
+node tests/serve_web.mjs        # 本地起服务后访问 http://127.0.0.1:8080/
 ```
 
-##### 运行方法
+打开页面 → 选择或拖入图片 → 点"混淆/解混淆"。页面上的"偏移参数"留空或填 `auto` 即使用默认值，
+与命令行公式完全一致；填数字则用该偏移量（可用于解出早期版本用 `auto` 混淆的图片，见"兼容性"）。
 
-1. 先编译好`hilbert_encrypt.cpp`文件
-2. 将图片放入`./files`文件夹里，或者等待程序自动创建
-3. 进入命令行，运行`./bin/hilbert_encrypt.exe [options]`
-4. 混淆：`-e`，解混淆：`-d`
+#### Python 版
 
-#### Py版本
-
-##### 配置环境
-
-```bash
-conda create -n hilbertCrypt python=3.10 -c conda-forge
-conda activate hilbertCrypt
-pip install pillow==11.1.0 numpy==2.2.4
+```powershell
+python -m src.cli -i 输入.png -o 输出.png -m encrypt
+python -m src.cli --folder files -m encrypt      # 批量原地覆盖
 ```
 
-##### 运行方法
+详见 [`Python/README.md`](Python/README.md)。
 
-1. 将图片放入`./files`文件夹里
-2. 混淆：命令行界面输入`python bbw_tphx_NumPy.py -d/--decrypt`
-3. 解混淆：命令行界面输入`python bbw_tphx_NumPy.py -d/--decrypt`
+### 📊 性能基线
 
-#### Web版本
+数据由 `node tests/bench.mjs` 生成（本机 28 逻辑核 / 32GB）：
 
-[稳定版本](https://baobingwen.github.io/tools/GilbertCrypt/test/)
+| 尺寸 | 像素 | C++（含读写盘） | Rust/WASM（仅置换） | Python（含读写盘） |
+| --- | --- | --- | --- | --- |
+| 1024×768 | 0.79 MP | 0.43 s | 29 ms | 1.7 s |
+| 1382×924 | 1.28 MP | 0.43 s | 49 ms | 2.6 s |
+| 1920×1080 | 2.07 MP | 0.45 s | 63 ms | — |
+| 4000×3000 | 12 MP | 0.45 s | 623 ms | — |
 
-[最新开发测试版本](https://baobingwen.github.io/tools/GilbertCrypt/test/)
+C++ 用固定大小线程池并发处理多张图；单张图的耗时主要在编解码，像素重排本身只占很小一部分
+（`--out-of-place` 与默认的原地置换耗时基本一致，原地置换省的是内存而不是时间）。
+
+### 🧪 测试
+
+```powershell
+node tests/run_all.mjs          # 全部（Rust 单测 + 跨语言 + Web 契约 + 端到端 CLI）
+node tests/run_all.mjs --quick  # 跳过耗时用例
+```
+
+详见 [`tests/README.md`](tests/README.md)。
+
+### ⚠️ 兼容性说明（重要）
+
+本版本统一了各端算法与偏移量公式，因此与一年前的旧版本存在**三处不兼容**：
+
+| 变更 | 影响 | 补救方式 |
+| --- | --- | --- |
+| Web 端默认偏移量由 `round(φ×(总像素数-1))` 改为 `round(φ×总像素数)` | 用旧 Web 版 `auto` 值混淆的图片，新版解不出 | 在"偏移参数"里试 `自动值±1`；显式填过数字的不受影响 |
+| Python 端曲线换成广义希尔伯特曲线 | 旧 Python 加密的图片无法再解 | 用 `Python/legacy/` 里的旧脚本解密 |
+| `web/src/wasm/` 产物由 `web/rs` 重新构建 | 需成对替换 wasm 与 JS 胶水，不要混用 | 直接 `node tests/run_all.mjs` 验证 |
+
+### 🌍 项目结构
+
+```
+.
+├── Cpp/                      # C++ 命令行版
+│   ├── hilbert_encrypt.cpp   #   唯一源码
+│   ├── build.ps1             #   一键构建
+│   └── CMakeLists.txt
+├── web/                      # Web 版
+│   ├── src/                  #   当前版本（index.html + worker.js + wasm/）
+│   ├── rs/                   #   WASM 核心的 Rust 源码（产物 web/src/wasm 由它生成）
+│   ├── versions/             #   历史版本存档
+│   └── tmp/                  #   开发期临时快照（不参与构建）
+├── Python/                   # Python 版
+│   ├── src/                  #   当前实现（gilbert_core.py + cli.py）
+│   ├── tests/                #   单元测试
+│   └── legacy/               #   旧算法存档（不兼容）
+├── js/                       # 最初的 Node.js 实现（算法源头，仅存档）
+├── tests/                    # 跨语言/端到端/契约测试（Node）
+├── files/                    # 命令行工具的默认处理目录（自动创建）
+└── images/                   # 大体积测试素材（不纳入版本管理）
+```
+
+### ⚠️ 其它注意事项
+
+- 命令行工具会**覆盖原文件**，处理前请备份；
+- Web 版单张图上限 4096×4096 像素（WASM 内存与浏览器画布限制），超大图请用命令行；
+- 目前仅在 Windows 上验证过（依赖 `windows.h`/`psapi` 与 MSYS2 工具链）。
 
 <a id="english"></a>
 
@@ -100,24 +142,3 @@ pip install pillow==11.1.0 numpy==2.2.4
 Waiting for a stable version.
 
 暂无英文版说明，等待大版本再更新
-
----
-
-## 通用内容 / Common Sections
-
-### 项目结构 / Project Structure
-
-```
-.
-├── bbw_tphx_NumPy.py        # CLI Py Version
-├── hilbert_encrypt.cpp      # CLI C++ Version
-├── index.html               # Web UI
-├── worker.js                # Web Worker
-└── files/                   # Processing folder 
-```
-
-### 注意事项 / Notes
-
-- 🔸 Web版建议处理小于2000x2000像素的图片
-- 🔸 命令行工具会覆盖原文件
-- 🔸 混淆结果暂不跨语言兼容，且仅支持win版

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小土豆图片混淆</title>
+    <style>
+        .normal_button {
+            min-width: 4rem;
+            height: 2rem;
+            line-height: 2rem;
+            font-size: 1rem;
+            padding: 0 0.5rem;
+            margin: 0 0.5rem;
+            border: 0;
+            border-radius: 6px;
+            display: inline-block;
+            position: relative;
+            vertical-align: middle;
+        }
+
+        .ipt_btn {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            background-color: #ccc;
+        }
+    </style>
+</head>
+
+<body>
+    <div style="text-align: center;">
+        <h1>小土豆图片混淆</h1>
+        <div style="display: inline-block; max-width: 600px;">
+            基于gilbert填充曲线+像素偏移的新一代图片混淆。<br>混淆算法保持像素的空间相关性，混淆图被压缩仍能保持色彩。<br>仅供技术交流使用。<br>此程序生成的图片格式为png，质量理论1。</div>
+        <div>&ZeroWidthSpace;</div>
+        <div>
+            <span class="normal_button" style="background-color: #180161;color:#fff;">
+                选择图片<input type="file" accept="image/*" id="ipt" class="ipt_btn" />
+            </span>
+            <button id="enc" class="normal_button" style="background-color: #4f1787;color:#fff;">
+                混淆
+            </button>
+            <button id="dec" class="normal_button" style="background-color: #eb3678;color:#fff;">
+                解混淆
+            </button>
+            <button id="re" class="normal_button" style="background-color: #fb773c;color:#fff;">
+                还原
+            </button>
+        </div>
+        <div>&ZeroWidthSpace;</div>
+        <div><img id="display-img"
+                style="max-width: calc(100vw - 32px); max-height: calc(100vh - 32px); display: none;" /></div>
+    </div>
+    <script>
+        function gilbert2d(width, height) {
+            /**
+             * Generalized Hilbert ('gilbert') space-filling curve for arbitrary-sized
+             * 2D rectangular grids. Generates discrete 2D coordinates to fill a rectangle
+             * of size (width x height).
+             */
+            const coordinates = [];
+
+            if (width >= height) {
+                generate2d(0, 0, width, 0, 0, height, coordinates);
+            } else {
+                generate2d(0, 0, 0, height, width, 0, coordinates);
+            }
+
+            return coordinates;
+        }
+
+        function generate2d(x, y, ax, ay, bx, by, coordinates) {
+            const w = Math.abs(ax + ay);
+            const h = Math.abs(bx + by);
+
+            const dax = Math.sign(ax), day = Math.sign(ay); // unit major direction
+            const dbx = Math.sign(bx), dby = Math.sign(by); // unit orthogonal direction
+
+            if (h === 1) {
+                // trivial row fill
+                for (let i = 0; i < w; i++) {
+                    coordinates.push([x, y]);
+                    x += dax;
+                    y += day;
+                }
+                return;
+            }
+
+            if (w === 1) {
+                // trivial column fill
+                for (let i = 0; i < h; i++) {
+                    coordinates.push([x, y]);
+                    x += dbx;
+                    y += dby;
+                }
+                return;
+            }
+
+            let ax2 = Math.floor(ax / 2), ay2 = Math.floor(ay / 2);
+            let bx2 = Math.floor(bx / 2), by2 = Math.floor(by / 2);
+
+            const w2 = Math.abs(ax2 + ay2);
+            const h2 = Math.abs(bx2 + by2);
+
+            if (2 * w > 3 * h) {
+                if ((w2 % 2) && (w > 2)) {
+                    // prefer even steps
+                    ax2 += dax;
+                    ay2 += day;
+                }
+
+                // long case: split in two parts only
+                generate2d(x, y, ax2, ay2, bx, by, coordinates);
+                generate2d(x + ax2, y + ay2, ax - ax2, ay - ay2, bx, by, coordinates);
+
+            } else {
+                if ((h2 % 2) && (h > 2)) {
+                    // prefer even steps
+                    bx2 += dbx;
+                    by2 += dby;
+                }
+
+                // standard case: one step up, one long horizontal, one step down
+                generate2d(x, y, bx2, by2, ax2, ay2, coordinates);
+                generate2d(x + bx2, y + by2, ax, ay, bx - bx2, by - by2, coordinates);
+                generate2d(x + (ax - dax) + (bx2 - dbx), y + (ay - day) + (by2 - dby),
+                    -bx2, -by2, -(ax - ax2), -(ay - ay2), coordinates);
+            }
+        }
+    </script>
+    <script>
+        const _0x15880d=_0x254a;(function(_0x4c0a34,_0x253e1b){const _0x384f1e=_0x254a,_0x5b4663=_0x4c0a34();while(!![]){try{const _0x2ba40e=-parseInt(_0x384f1e(0xb6))/0x1*(-parseInt(_0x384f1e(0xbc))/0x2)+-parseInt(_0x384f1e(0xa1))/0x3*(-parseInt(_0x384f1e(0xb2))/0x4)+-parseInt(_0x384f1e(0x9f))/0x5+parseInt(_0x384f1e(0x9d))/0x6*(parseInt(_0x384f1e(0x9c))/0x7)+parseInt(_0x384f1e(0xbb))/0x8*(-parseInt(_0x384f1e(0x9b))/0x9)+parseInt(_0x384f1e(0xaf))/0xa+-parseInt(_0x384f1e(0xb7))/0xb;if(_0x2ba40e===_0x253e1b)break;else _0x5b4663['push'](_0x5b4663['shift']());}catch(_0x4637c1){_0x5b4663['push'](_0x5b4663['shift']());}}}(_0x1624,0xf29a3));const img=document[_0x15880d(0x99)](_0x15880d(0xba));function setsrc(_0x202033){const _0x56e965=_0x15880d;URL[_0x56e965(0xa3)](img['src']),img[_0x56e965(0x9e)]=_0x202033,img[_0x56e965(0xaa)][_0x56e965(0xa4)]=_0x56e965(0xb1);}function encrypt(_0x1838d3){const _0x2a1b17=_0x15880d,_0x446b05=document[_0x2a1b17(0xa7)](_0x2a1b17(0x96)),_0x2e54ba=_0x446b05[_0x2a1b17(0xb8)]=_0x1838d3[_0x2a1b17(0xb8)],_0x5a0cea=_0x446b05[_0x2a1b17(0xb0)]=_0x1838d3[_0x2a1b17(0xb0)],_0xdaac9f=_0x446b05[_0x2a1b17(0xb9)]('2d');_0xdaac9f['drawImage'](_0x1838d3,0x0,0x0);const _0x1599b0=_0xdaac9f[_0x2a1b17(0x98)](0x0,0x0,_0x2e54ba,_0x5a0cea),_0x21c825=new ImageData(_0x2e54ba,_0x5a0cea),_0x282060=gilbert2d(_0x2e54ba,_0x5a0cea),_0x2ca947=Math[_0x2a1b17(0xa9)]((Math['sqrt'](0x5)-0x1)/0x2*_0x2e54ba*_0x5a0cea);for(let _0xfad901=0x0;_0xfad901<_0x2e54ba*_0x5a0cea;_0xfad901++){const _0x227cb3=_0x282060[_0xfad901],_0x58a7fa=_0x282060[(_0xfad901+_0x2ca947)%(_0x2e54ba*_0x5a0cea)],_0x2423ed=0x4*(_0x227cb3[0x0]+_0x227cb3[0x1]*_0x2e54ba),_0x481933=0x4*(_0x58a7fa[0x0]+_0x58a7fa[0x1]*_0x2e54ba);_0x21c825[_0x2a1b17(0xa6)][_0x2a1b17(0xa5)](_0x1599b0[_0x2a1b17(0xa6)][_0x2a1b17(0x97)](_0x2423ed,_0x2423ed+0x4),_0x481933);}_0xdaac9f[_0x2a1b17(0x9a)](_0x21c825,0x0,0x0),_0x446b05['toBlob'](_0x3ebbbb=>{const _0x472db7=_0x2a1b17;setsrc(URL[_0x472db7(0xa8)](_0x3ebbbb));},_0x2a1b17(0x95));}function decrypt(_0x1a67bd){const _0x510cc2=_0x15880d,_0xc321d4=document['createElement']('canvas'),_0x37e55a=_0xc321d4[_0x510cc2(0xb8)]=_0x1a67bd[_0x510cc2(0xb8)],_0x5111df=_0xc321d4[_0x510cc2(0xb0)]=_0x1a67bd[_0x510cc2(0xb0)],_0x3f8cb7=_0xc321d4[_0x510cc2(0xb9)]('2d');_0x3f8cb7[_0x510cc2(0xac)](_0x1a67bd,0x0,0x0);const _0x1d1c0a=_0x3f8cb7[_0x510cc2(0x98)](0x0,0x0,_0x37e55a,_0x5111df),_0x448471=new ImageData(_0x37e55a,_0x5111df),_0x3b22f0=gilbert2d(_0x37e55a,_0x5111df),_0x265197=Math[_0x510cc2(0xa9)]((Math[_0x510cc2(0xb3)](0x5)-0x1)/0x2*_0x37e55a*_0x5111df);for(let _0x46bc21=0x0;_0x46bc21<_0x37e55a*_0x5111df;_0x46bc21++){const _0x531853=_0x3b22f0[_0x46bc21],_0x2d730a=_0x3b22f0[(_0x46bc21+_0x265197)%(_0x37e55a*_0x5111df)],_0x8f9117=0x4*(_0x531853[0x0]+_0x531853[0x1]*_0x37e55a),_0x565296=0x4*(_0x2d730a[0x0]+_0x2d730a[0x1]*_0x37e55a);_0x448471[_0x510cc2(0xa6)][_0x510cc2(0xa5)](_0x1d1c0a[_0x510cc2(0xa6)][_0x510cc2(0x97)](_0x565296,_0x565296+0x4),_0x8f9117);}_0x3f8cb7[_0x510cc2(0x9a)](_0x448471,0x0,0x0),_0xc321d4[_0x510cc2(0xab)](_0x564a93=>{const _0xfc865d=_0x510cc2;setsrc(URL[_0xfc865d(0xa8)](_0x564a93));},_0x510cc2(0x95));}const ipt=document[_0x15880d(0x99)](_0x15880d(0xae));ipt['onchange']=()=>{const _0x24dd80=_0x15880d;ipt[_0x24dd80(0xa0)][_0x24dd80(0xad)]>0x0&&setsrc(URL[_0x24dd80(0xa8)](ipt[_0x24dd80(0xa0)][0x0]));};const btn_enc=document[_0x15880d(0x99)]('enc');btn_enc[_0x15880d(0xb4)]=()=>{const _0x3b0514=_0x15880d;img[_0x3b0514(0x9e)]&&(img['style']['display']=_0x3b0514(0xa2),requestAnimationFrame(()=>{requestAnimationFrame(()=>{encrypt(img);});}));};function _0x1624(){const _0x16d845=['54694112baWsNj','width','getContext','display-img','944oskJqI','2278tOCWnB','image/png','canvas','slice','getImageData','getElementById','putImageData','19872bzLumz','2065nizaqL','40386WHZoNy','src','223320DsHDEa','files','266562kkhNEV','none','revokeObjectURL','display','set','data','createElement','createObjectURL','round','style','toBlob','drawImage','length','ipt','8511050KNIvHz','height','inline-block','88NHwbdy','sqrt','onclick','dec','1299iQiJCQ'];_0x1624=function(){return _0x16d845;};return _0x1624();}const btn_dec=document[_0x15880d(0x99)](_0x15880d(0xb5));btn_dec[_0x15880d(0xb4)]=()=>{const _0x5b2675=_0x15880d;img[_0x5b2675(0x9e)]&&(img[_0x5b2675(0xaa)][_0x5b2675(0xa4)]='none',requestAnimationFrame(()=>{requestAnimationFrame(()=>{decrypt(img);});}));};function _0x254a(_0x2cbe96,_0x3aa753){const _0x162449=_0x1624();return _0x254a=function(_0x254aed,_0x433dbc){_0x254aed=_0x254aed-0x95;let _0x38a1e2=_0x162449[_0x254aed];return _0x38a1e2;},_0x254a(_0x2cbe96,_0x3aa753);}const btn_restore=document['getElementById']('re');btn_restore[_0x15880d(0xb4)]=()=>{const _0x519741=_0x15880d;ipt[_0x519741(0xa0)]['length']>0x0&&setsrc(URL[_0x519741(0xa8)](ipt[_0x519741(0xa0)][0x0]));};
+    </script>
+</body>
+
+</html>
