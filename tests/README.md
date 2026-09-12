@@ -41,6 +41,7 @@ node tests/run_all.mjs --quick  # 跳过耗时的端到端大图用例
 | `repo_bloat_dimensions.mjs` | 按图像尺寸（PNG IHDR / JPEG SOF）认领无法按内容匹配的历史图片 |
 | `repo_bloat_export.mjs` | 把只存在于 `.git` 里的图片导出到 `tests/out/unreachable/` 并生成 `index.html` 供人工确认 |
 | `repo_bloat_archive.mjs` | 把**全部**不可达对象导出到忽略目录留档（逐个用 `git hash-object` 复核），`--gc` 时在校验全过后执行清理 |
+| `remote_bloat_check.mjs` | **推送前检查远端**：分别统计本地待推送与远端已有历史的对象体积，列出各自的大对象，并算出"需要上传的对象里有没有大文件"（`REMOTE_NAME=origin` 指定远端名） |
 
 清理（不可逆，会永久删除不可达对象）：
 
