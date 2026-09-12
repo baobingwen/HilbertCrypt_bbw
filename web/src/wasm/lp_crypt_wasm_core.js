@@ -32,6 +32,7 @@ function passArray8ToWasm0(arg, malloc) {
     return ptr;
 }
 /**
+ * 显式暴露构造入口，兼容早期版本的 JS 胶水
  * @param {number} width
  * @param {number} height
  * @returns {Gilbert2D}
@@ -77,16 +78,22 @@ export class Gilbert2D {
         return this;
     }
     /**
+     * 像素重排：`is_encrypt` 时把曲线第 i 个像素搬到第 (i+offset) 个位置，否则反向。
+     *
+     * `buffer` 必须是长度为 `width * height * 4` 的 RGBA 缓冲区。
+     * 实现为原地循环置换（每个像素只搬一次），峰值内存只有一个缓冲区，
+     * 相比"另开一份输出缓冲区"省下一半内存。
      * @param {Uint8Array} buffer
      * @param {number} offset
      * @param {boolean} is_encrypt
      */
     process_pixels(buffer, offset, is_encrypt) {
-        var ptr0 = passArray8ToWasm0(buffer, wasm.__wbindgen_malloc);
+        var ptr0 = passArray8ToWasm0(buffer, wasm.__wbindgen_export_1);
         var len0 = WASM_VECTOR_LEN;
         wasm.gilbert2d_process_pixels(this.__wbg_ptr, ptr0, len0, buffer, offset, is_encrypt);
     }
     /**
+     * 返回预计算的像素偏移量表（曲线坐标 -> 线性索引），供别处复用
      * @returns {Uint32Array}
      */
     get_offsets() {
@@ -98,7 +105,9 @@ export class Gilbert2D {
 const PointFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_point_free(ptr >>> 0, 1));
-
+/**
+ * 曲线上的一个像素坐标
+ */
 export class Point {
 
     __destroy_into_raw() {

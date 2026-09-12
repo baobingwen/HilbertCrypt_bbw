@@ -1,0 +1,23 @@
+[package]
+name = "lp_crypt_wasm_core"
+version = "2.1.0"
+edition = "2021"
+description = "Generalized Hilbert (Gilbert) curve pixel permutation core for the Potato Image Obfuscator web build"
+license = "MIT"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# 必须与 wasm-bindgen-cli 的版本严格一致，否则生成的 JS 胶水与 wasm 不匹配。
+# 旧版 wasm 由 0.2.100 产出，故此处用 "=0.2.100" 锁死。
+wasm-bindgen = "=0.2.100"
+js-sys = "=0.3.77"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
