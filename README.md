@@ -113,6 +113,7 @@ Linux 上跑 Rust 单测 / 跨语言 / Web 契约并重建 wasm 做行为比对�
 ### 📝 版本与许可
 
 - 变更历史见 [`CHANGELOG.md`](CHANGELOG.md)（v2.1.0 起维护）；
+  后续开发计划见 [`ROADMAP.md`](ROADMAP.md)；
   开发过程记录见 [`devlog.md`](devlog.md)。
 - 许可证：[MIT](LICENSE)。
 
